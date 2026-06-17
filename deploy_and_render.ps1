@@ -36,8 +36,12 @@ Run "git remote add origin $RepoUrl"
 
 # Commit & push
 Run "git add ."
-# Allow empty commits to avoid error if nothing changed
-Run "git commit -m \"$CommitMessage\" || echo 'No changes to commit'"
+# Try commit; continue if there are no changes to commit
+try {
+    Run "git commit -m \"$CommitMessage\""
+} catch {
+    Write-Host "No changes to commit, continuing..."
+}
 Run "git push -u origin $Branch"
 
 Write-Host "\nRepository pushed.\nNext: Create a Render Web Service. Follow these steps:" -ForegroundColor Green

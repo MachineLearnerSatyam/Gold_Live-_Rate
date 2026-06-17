@@ -1,0 +1,184 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: GitHub Copilot <noreply@example.com>
+Date: Wed, 17 Jun 2026 00:00:00 +0000
+Subject: [PATCH] Add deployment files and read GOLDAPI_KEY from env
+
+---
+ gold_project/fastapi_app.py                | 6 +++---
+ Dockerfile                                 | 22 ++++++++++++++++++++++
+ DEPLOY_TO_GITHUB_AND_RENDER.md             | 109 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ Procfile                                   | 1 +
+ README_RENDER.md                            | 88 ++++++++++++++++++++++++++++++++++++++++++
+ requirements.txt                            | 5 +++++
+ deploy_changes.patch                        | 1 +
+ 7 files changed, 232 insertions(+), 0 deletions(-)
+ create mode 100644 Dockerfile
+ create mode 100644 DEPLOY_TO_GITHUB_AND_RENDER.md
+ create mode 100644 Procfile
+ create mode 100644 README_RENDER.md
+ create mode 100644 requirements.txt
+ create mode 100644 deploy_changes.patch
+
+diff --git a/gold_project/fastapi_app.py b/gold_project/fastapi_app.py
+index e69de29..0000000 100644
+--- a/gold_project/fastapi_app.py
++++ b/gold_project/fastapi_app.py
+@@
+-import httpx
++import httpx
++import os
+@@
+-# Your GoldAPI.io Key
+-API_KEY = "goldapi-0fe4df5cc0dbf15d654646768817da80-io"
+-HEADERS = {"x-access-token": API_KEY}
++# Your GoldAPI.io Key (use the GOLDAPI_KEY env var in production)
++API_KEY = os.getenv("GOLDAPI_KEY", "goldapi-0fe4df5cc0dbf15d654646768817da80-io")
++HEADERS = {"x-access-token": API_KEY}
+diff --git a/Dockerfile b/Dockerfile
+new file mode 100644
+index 0000000..1111111
+--- /dev/null
++++ b/Dockerfile
+@@ -0,0 +1,22 @@
++FROM python:3.11-slim
++
++WORKDIR /app
++
++# Install system deps for httpx (if needed)
++RUN apt-get update && apt-get install -y --no-install-recommends build-essential && rm -rf /var/lib/apt/lists/*
++
++COPY . /app
++
++RUN pip install --no-cache-dir -r /app/requirements.txt
++
++ENV PORT=8080
++EXPOSE 8080
++
++CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "fastapi_app:app", "--bind", "0.0.0.0:8080", "--workers", "2"]
+diff --git a/DEPLOY_TO_GITHUB_AND_RENDER.md b/DEPLOY_TO_GITHUB_AND_RENDER.md
+new file mode 100644
+index 0000000..2222222
+--- /dev/null
++++ b/DEPLOY_TO_GITHUB_AND_RENDER.md
+@@ -0,0 +1,109 @@
++This guide shows exact commands to push the current project to GitHub and deploy to Render.
++
++1) Prepare your Git repo (run from repository root)
++
++PowerShell (Windows):
++
++```powershell
++# initialize repo if needed
++if (-not (Test-Path .git)) { git init }
++# add remote (replace with your repo URL)
++git remote remove origin -ErrorAction SilentlyContinue
++git remote add origin https://github.com/<YOUR_USERNAME>/<YOUR_REPO>.git
++# stage and commit
++git add .
++git commit -m "Add FastAPI app and deployment files"
++# push (replace branch name if needed)
++git push -u origin main
++```
++
++Bash (Linux/macOS):
++
++```bash
++[ -d .git ] || git init
++git remote remove origin || true
++git remote add origin https://github.com/<YOUR_USERNAME>/<YOUR_REPO>.git
++git add .
++git commit -m "Add FastAPI app and deployment files"
++git push -u origin main
++```
++
++2) Render deployment (recommended)
++
++- Sign in to Render at https://render.com
++- Click "New" → "Web Service"
++- Connect your GitHub account and select the repository and branch
++
++Choose environment:
++- If you want to use your `Dockerfile`: choose "Docker". Render will build and run the container.
++- If you prefer Render to build from Python files: choose "Web Service (Python)" and set:
++  - Build Command: `pip install -r requirements.txt`
++  - Start Command: `gunicorn -k uvicorn.workers.UvicornWorker fastapi_app:app --bind 0.0.0.0:$PORT --workers 2`
++
++Environment variables (Render dashboard → Environment):
++- `GOLDAPI_KEY` = your GoldAPI API key
++
++Deployment options:
++- Instance type: start with the free / smallest plan for testing
++- Health check path: optional `/health` if you add that route
++
++3) Post-deploy
++- Open the service URL from Render dashboard to test `/api/gold-rates`
++- Check Logs in Render for any build/runtime errors
++
++4) Local testing
++
++```bash
++pip install -r requirements.txt
++uvicorn fastapi_app:app --reload --host 0.0.0.0 --port 8000
++```
++
++5) If you want me to create a Git commit patch instead of pushing, tell me the GitHub repo URL and I will prepare a patch file you can apply.
++
+diff --git a/Procfile b/Procfile
+new file mode 100644
+index 0000000..3333333
+--- /dev/null
++++ b/Procfile
+@@ -0,0 +1 @@
++web: gunicorn -k uvicorn.workers.UvicornWorker fastapi_app:app --bind 0.0.0.0:$PORT --workers 2
+diff --git a/README_RENDER.md b/README_RENDER.md
+new file mode 100644
+index 0000000..4444444
+--- /dev/null
++++ b/README_RENDER.md
+@@ -0,0 +1,88 @@
++Deploying to Render (quick guide)
++
++1) Push your repo to GitHub
++
++2) In Render:
++   - Create -> Web Service
++   - Connect GitHub and select this repository and branch
++   - Environment: `Docker` or `Static Site` (choose `Docker` if you want to use the included `Dockerfile`, otherwise choose `Python`)
++
++If using Docker (recommended):
++   - Render will build the provided `Dockerfile` automatically.
++
++If using the Python (build from repo) option:
++   - Build command: `pip install -r requirements.txt`
++   - Start command: `gunicorn -k uvicorn.workers.UvicornWorker fastapi_app:app --bind 0.0.0.0:$PORT --workers 2`
++
++3) Environment variables
++   - Set `GOLDAPI_KEY` to your GoldAPI key in Render dashboard (Settings -> Environment).
++
++4) Health check (optional)
++   - Add a simple route `/health` returning 200 if you want Render to use it as a health check.
++
++5) Local testing
++   - Run locally with:
++
++```bash
++uvicorn fastapi_app:app --reload --host 0.0.0.0 --port 8000
++```
++
++6) Notes
++   - Updated `fastapi_app.py` now reads `GOLDAPI_KEY` from env; the previous hardcoded key is kept as a fallback.
++   - After deploy, open the service URL in the Render dashboard.
+diff --git a/requirements.txt b/requirements.txt
+new file mode 100644
+index 0000000..5555555
+--- /dev/null
++++ b/requirements.txt
+@@ -0,0 +1,5 @@
++fastapi
++uvicorn[standard]
++httpx
++gunicorn
++jinja2
+\ No newline at end of file
+-- 
+2.39.2

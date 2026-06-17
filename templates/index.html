@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Gold Rates</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; background-color: #f9f9f9; }
+        .container { background-color: white; padding: 30px; border-radius: 10px; display: inline-block; box-shadow: 0 0 10px rgba(0,0,0,0.1); width: 400px; }
+        
+        .current-price { font-size: 2.5em; color: #d4af37; font-weight: bold; margin: 5px 0; }
+        .unit-label { font-size: 14px; color: #666; margin-bottom: 15px; }
+        .date { color: #888; font-size: 13px; margin-bottom: 20px; }
+        
+        .dropdown-section { text-align: left; margin-top: 25px; padding-top: 20px; border-top: 1px solid #eee; }
+        label { display: block; font-weight: bold; margin-bottom: 10px; color: #333; }
+        select { 
+            width: 100%; 
+            padding: 10px; 
+            font-size: 16px; 
+            border: 1px solid #ccc; 
+            border-radius: 5px; 
+            background-color: #fff;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Current Gold Rate (India)</h2>
+        
+        <div class="current-price" id="price-display">₹ Loading...</div>
+        <div class="unit-label">Per 10 Grams (24K)</div>
+        <div class="date" id="time-display">Last updated: Fetching...</div>
+
+        <div class="dropdown-section">
+            <label for="history-dropdown">Previous 5 Days</label>
+            <select id="history-dropdown">
+                <option>2026-06-16 — ₹1,16,260</option>
+                <option>2026-06-15 — ₹1,16,183</option>
+                <option>2026-06-12 — ₹1,13,149</option>
+                <option>2026-06-11 — ₹1,09,802</option>
+            </select>
+        </div>
+    </div>
+
+    <script>
+        async function fetchGoldData() {
+            try {
+                // Fetch directly from our high-speed FastAPI layer
+                const response = await fetch('http://127.0.0.1:8000/api/gold-rates');
+                const data = await response.json();
+
+                // Format numbers to clean Indian currency format
+                const formatter = new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+                // Inject the live data into the HTML elements using their IDs
+                document.getElementById('time-display').innerText = `Last updated: ${data.last_updated}`;
+                document.getElementById('price-display').innerText = `₹${formatter.format(data.current_price)}`;
+
+                // Clear out loading option in dropdown selector
+                const dropdown = document.getElementById('history-dropdown');
+                dropdown.innerHTML = '';
+
+                // Dynamically populate historical items inside select menu element
+                data.previous_prices.forEach(item => {
+                    const option = document.createElement('option');
+                    option.text = `${item.date} — ₹${formatter.format(item.price)}`;
+                    dropdown.add(option);
+                });
+
+            } catch (error) {
+                console.error("Error connecting to FastAPI engine:", error);
+                document.getElementById('time-display').innerText = "Failed to sync live data feed.";
+            }
+        }
+
+        // Run the script as soon as the page loads
+        window.onload = fetchGoldData;
+    </script>
+</body>
+</html>

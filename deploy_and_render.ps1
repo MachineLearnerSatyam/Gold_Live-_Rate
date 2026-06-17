@@ -42,7 +42,16 @@ try {
 } catch {
     Write-Host "No changes to commit, continuing..."
 }
-Run "git push -u origin $Branch"
+# Determine current local branch and push to the desired remote branch name
+$curBranch = (& git rev-parse --abbrev-ref HEAD) -replace '\r',''
+if (-not $curBranch) { $curBranch = "master" }
+Write-Host "Current local branch: $curBranch"
+if ($curBranch -ne $Branch) {
+    Write-Host "Pushing local branch '$curBranch' to remote '$Branch'..."
+    Run "git push -u origin HEAD:$Branch"
+} else {
+    Run "git push -u origin $Branch"
+}
 
 Write-Host "\nRepository pushed.\nNext: Create a Render Web Service. Follow these steps:" -ForegroundColor Green
 Write-Host "1) Sign in to https://render.com and click 'New' → 'Web Service'"

@@ -47,8 +47,8 @@
     <script>
         async function fetchGoldData() {
             try {
-                // Fetch directly from our high-speed FastAPI layer
-                const response = await fetch('http://127.0.0.1:8000/api/gold-rates');
+                // Fetch from the same deployed API
+                const response = await fetch('/api/gold-rates');
                 const data = await response.json();
 
                 // Format numbers to clean Indian currency format

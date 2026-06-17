@@ -3,6 +3,9 @@ import os
 from datetime import datetime, timedelta
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse
+from pathlib import Path
 
 app = FastAPI(title="Live Indian Gold Extractor")
 
@@ -15,13 +18,26 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Mount templates directory as static files
+template_dir = Path(__file__).parent.parent / "templates"
+if template_dir.exists():
+    app.mount("/templates", StaticFiles(directory=template_dir), name="templates")
+
 # Your GoldAPI.io Key (use the GOLDAPI_KEY env var in production)
 API_KEY = os.getenv("GOLDAPI_KEY", "goldapi-0fe4df5cc0dbf15d654646768817da80-io")
 HEADERS = {"x-access-token": API_KEY}
 
 @app.get("/")
 async def root():
-    return {"message": "Gold Live Rate API is running", "docs": "/docs", "endpoint": "/api/gold-rates"}
+    return {"message": "Gold Live Rate API is running", "docs": "/docs", "endpoint": "/api/gold-rates", "ui": "/ui"}
+
+@app.get("/ui")
+async def get_ui():
+    try:
+        with open(Path(__file__).parent.parent / "templates" / "index.html", "r") as f:
+            return HTMLResponse(content=f.read())
+    except:
+        return HTMLResponse(content="<h1>UI not found</h1>", status_code=404)
 
 @app.get("/health")
 async def health():

@@ -47,7 +47,6 @@
     <script>
         async function fetchGoldData() {
             try {
-                console.log("Fetching from: " + window.location.origin + "/api/gold-rates");
                 const response = await fetch('/api/gold-rates');
                 
                 if (!response.ok) {
@@ -57,11 +56,16 @@
                 const data = await response.json();
                 console.log("Data received:", data);
 
+                    // Validate data structure
+                    if (!data.current_price) {
+                        throw new Error("Invalid response: missing current_price");
+                    }
+
                 // Format numbers to clean Indian currency format
                 const formatter = new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
                 // Inject the live data into the HTML elements using their IDs
-                document.getElementById('time-display').innerText = `Last updated: ${data.last_updated}`;
+                    document.getElementById('time-display').innerText = `Last updated: ${data.last_updated || 'N/A'}`;
                 document.getElementById('price-display').innerText = `₹${formatter.format(data.current_price)}`;
 
                 // Clear out loading option in dropdown selector
@@ -69,16 +73,20 @@
                 dropdown.innerHTML = '';
 
                 // Dynamically populate historical items inside select menu element
-                data.previous_prices.forEach(item => {
-                    const option = document.createElement('option');
-                    option.text = `${item.date} — ₹${formatter.format(item.price)}`;
-                    dropdown.add(option);
-                });
+                    if (data.previous_prices && Array.isArray(data.previous_prices)) {
+                        data.previous_prices.forEach(item => {
+                            const option = document.createElement('option');
+                            option.text = `${item.date} — ₹${formatter.format(item.price)}`;
+                            dropdown.add(option);
+                        });
+                    } else {
+                        console.warn("previous_prices not found or not an array");
+                    }
 
             } catch (error) {
                 console.error("Error:", error);
                 document.getElementById('time-display').innerText = "Error: " + error.message;
-                document.getElementById('price-display').innerText = "Unable to load";
+                    document.getElementById('price-display').innerText = "Check logs";
             }
         }
 

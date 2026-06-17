@@ -1,1 +1,1 @@
-web: gunicorn -k uvicorn.workers.UvicornWorker fastapi_app:app --bind 0.0.0.0:$PORT --workers 2
+web: gunicorn -k uvicorn.workers.UvicornWorker gold_project.fastapi_app:app --bind 0.0.0.0:$PORT --workers 2

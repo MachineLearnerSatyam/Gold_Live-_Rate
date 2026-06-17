@@ -67,7 +67,37 @@ async def get_live_gold_rates():
             # This returns the real live price of 1 Troy Ounce in Indian Rupees
             live_price_ounce_inr = live_data["price"]
         except Exception as e:
-            return {"error": "Failed to connect to GoldAPI. Check your API Key."}
+            # If GoldAPI is unreachable, return a safe demo response so the UI still shows data
+            demo_now = today
+            demo_current = 152983.48
+            demo_previous = [152883.48, 152783.48, 152430.00, 151980.00]
+            previous_prices = []
+            for i, p in enumerate(demo_previous, start=1):
+                past_date = demo_now - timedelta(days=i)
+                previous_prices.append({
+                    'date': past_date.strftime('%d %b %Y'),
+                    'price': round(p, 2)
+                })
+
+            # simple prediction: current + average change
+            historical_trajectory = list(reversed(demo_previous))
+            historical_trajectory.append(demo_current)
+            fluctuations = [historical_trajectory[k] - historical_trajectory[k-1] for k in range(1, len(historical_trajectory))]
+            if fluctuations:
+                average_fluctuation = sum(fluctuations) / len(fluctuations)
+            else:
+                average_fluctuation = 0
+
+            predicted_price = round(demo_current + average_fluctuation, 2)
+            return {
+                'current_price': round(demo_current, 2),
+                'previous_prices': previous_prices,
+                'predicted_price': predicted_price,
+                'trend_status': 'Demo data (GoldAPI unreachable)',
+                'last_updated': demo_now.strftime('%d %b %Y, %I:%M %p'),
+                'sample': True,
+                'error': 'Failed to connect to GoldAPI. Showing demo data.'
+            }
 
         # --- 2. CONVERT TO INDIAN 10-GRAM STANDARD ---
         def convert_to_10g(ounce_price):

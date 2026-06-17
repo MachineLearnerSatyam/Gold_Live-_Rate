@@ -47,9 +47,15 @@
     <script>
         async function fetchGoldData() {
             try {
-                // Fetch from the same deployed API
+                console.log("Fetching from: " + window.location.origin + "/api/gold-rates");
                 const response = await fetch('/api/gold-rates');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const data = await response.json();
+                console.log("Data received:", data);
 
                 // Format numbers to clean Indian currency format
                 const formatter = new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -70,13 +76,14 @@
                 });
 
             } catch (error) {
-                console.error("Error connecting to FastAPI engine:", error);
-                document.getElementById('time-display').innerText = "Failed to sync live data feed.";
+                console.error("Error:", error);
+                document.getElementById('time-display').innerText = "Error: " + error.message;
+                document.getElementById('price-display').innerText = "Unable to load";
             }
         }
 
         // Run the script as soon as the page loads
-        window.onload = fetchGoldData;
+        window.addEventListener('load', fetchGoldData);
     </script>
 </body>
 </html>

@@ -19,6 +19,10 @@ app.add_middleware(
 API_KEY = os.getenv("GOLDAPI_KEY", "goldapi-0fe4df5cc0dbf15d654646768817da80-io")
 HEADERS = {"x-access-token": API_KEY}
 
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
 async def fetch_historical_price(client, date_str):
     """Helper function to fetch real historical data from GoldAPI"""
     url = f"https://www.goldapi.io/api/XAU/INR/{date_str}"

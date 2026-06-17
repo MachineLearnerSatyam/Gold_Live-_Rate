@@ -19,6 +19,10 @@ app.add_middleware(
 API_KEY = os.getenv("GOLDAPI_KEY", "goldapi-0fe4df5cc0dbf15d654646768817da80-io")
 HEADERS = {"x-access-token": API_KEY}
 
+@app.get("/")
+async def root():
+    return {"message": "Gold Live Rate API is running", "docs": "/docs", "endpoint": "/api/gold-rates"}
+
 @app.get("/health")
 async def health():
     return {"status": "ok"}
